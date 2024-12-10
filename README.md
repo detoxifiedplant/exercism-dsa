@@ -1,2 +1,2 @@
 # exercism-dsa
-exercism and other coding challenges
+Exercism and other coding challenges
