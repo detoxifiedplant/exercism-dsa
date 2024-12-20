@@ -1,7 +1,11 @@
 #![allow(dead_code, unused_variables, clippy::new_without_default)]
+use std::char;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::{default, usize};
+use itertools::Itertools;
+pub mod paas_io;
+pub mod palindrome;
+pub mod pascals_triangle;
 
 pub fn call() {
     println!("namah prabhu /\\ /\\");
@@ -11,6 +15,93 @@ pub fn call() {
     // valid_isbn();
     // isogram();
     // dna_nucleotide();
+    // passio();
+    // palindrome();
+    // pangram();
+    // alphametics();
+    pascals_triangle::call();
+}
+
+fn alphametics() {
+    let s = "I + BB == ILL";
+    let res = solve_alphametics(s);
+    println!("{:?}", res);
+}
+
+fn solve_alphametics(input: &str) -> Option<HashMap<char, u8>> {
+    let firsts = input
+        .split(&['+', '='])
+        .filter_map(|s| s.trim().chars().next())
+        .collect::<HashSet<_>>();
+    let (letters, factors) = calc_factors(input);
+    for perm in (0..=9).permutations(letters.len()) {
+        let sum = perm
+            .iter()
+            .enumerate()
+            .map(|(i, v)| v * factors.get(i).unwrap())
+            .sum::<i64>();
+        if sum == 0
+            && !perm
+                .iter()
+                .enumerate()
+                .any(|(i, v)| *v == 0 && firsts.contains(letters.get(i).unwrap()))
+        {
+            return Some(HashMap::from_iter(
+                perm.iter()
+                    .enumerate()
+                    .map(|(i, v)| (*letters.get(i).unwrap(), *v as u8)),
+            ));
+        }
+    }
+    None
+}
+
+fn calc_factors(input: &str) -> (Vec<char>, Vec<i64>) {
+    let mut factors = HashMap::new();
+    let mut sign = -1;
+    let mut pos = 0;
+    for c in input.chars().filter(|c| !c.is_whitespace()).rev() {
+        match c {
+            '=' => {
+                sign = 1;
+                pos = 0
+            }
+            '+' => pos = 0,
+            _ => {
+                *factors.entry(c).or_insert(0) += sign * 10_i64.pow(pos);
+                pos += 1;
+            }
+        }
+    }
+    factors.into_iter().sorted_by_key(|(_, v)| -v.abs()).unzip()
+}
+
+fn pangram() {
+    let s = "\"Five quacking Zephyrs jolt my wax bed.\"";
+    // let s = "the quick brown fox jumps over the lazy dog";
+    let res = is_pangram(s);
+    println!("{:?}", res);
+}
+
+fn is_pangram(sentence: &str) -> bool {
+    let mut set = ('a'..='z').collect::<HashSet<_>>();
+    sentence
+        .to_ascii_lowercase()
+        .chars()
+        .filter(|c| c.is_alphabetic())
+        .for_each(|c| {
+            set.remove(&c);
+        });
+    let _ = set.is_empty();
+    let s = sentence.to_lowercase();
+    ('a'..='z').all(|c| s.contains(c))
+}
+
+fn palindrome() {
+    palindrome::call();
+}
+fn passio() {
+    paas_io::call();
 }
 
 fn dna_nucleotide() {
