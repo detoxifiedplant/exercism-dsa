@@ -1,11 +1,13 @@
-#![allow(dead_code, unused_variables, clippy::new_without_default)]
-use std::char;
+#![allow(unused_variables, dead_code, clippy::new_without_default)]
+use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use itertools::Itertools;
+use std::iter::{self, repeat};
+pub mod dna_rna;
 pub mod paas_io;
 pub mod palindrome;
 pub mod pascals_triangle;
+pub mod queen_attack;
 
 pub fn call() {
     println!("namah prabhu /\\ /\\");
@@ -19,7 +21,244 @@ pub fn call() {
     // palindrome();
     // pangram();
     // alphametics();
-    pascals_triangle::call();
+    // pascals_triangle::call();
+    // latin_kids();
+    // run_length_encoding();
+    saddle_points();
+}
+
+fn saddle_points() {
+    let input = &[vec![9, 8, 7], vec![5, 3, 2], vec![6, 6, 7]];
+    let res = find_saddle_points(input);
+    println!("{:?}", res);
+}
+
+pub fn find_saddle_points(input: &[Vec<u64>]) -> Vec<(usize, usize)> {
+    input
+        .iter()
+        .enumerate()
+        .flat_map(|(r, row)| {
+            row.iter()
+                .enumerate()
+                .map(move |(c, v)| (r, c, v))
+                .filter_map(|(r, c, v)| {
+                    if input.iter().all(|row| row[c] >= *v) && input[r].iter().all(|x| v >= x) {
+                        Some((r, c))
+                    } else {
+                        None
+                    }
+                })
+        })
+        .collect()
+}
+
+pub fn find_saddle_points_2(input: &[Vec<u64>]) -> Vec<(usize, usize)> {
+    (0..input.len())
+        .flat_map(|x| repeat(x).zip(0..input[x].len()))
+        .filter(|&(r, c)| is_saddle(c, r, input))
+        .collect()
+}
+
+fn is_saddle(r: usize, c: usize, input: &[Vec<u64>]) -> bool {
+    let val = input[r][c];
+    input[r].iter().all(|&x| x <= val) && input.iter().all(|row| row[c] >= val)
+}
+
+pub fn find_saddle_points_1(input: &[Vec<u64>]) -> Vec<(usize, usize)> {
+    let mut perfect_points = Vec::new();
+    for (i, row) in input.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            let column = input.iter().all(|row| row[j] >= *value);
+            if row.iter().all(|x| x <= value) && column {
+                perfect_points.push((i, j));
+            }
+        }
+    }
+    perfect_points
+}
+
+fn run_length_encoding() {
+    assert_eq!(rle_encode("aabbbcccc"), "2a3b4c".to_string());
+    assert_eq!(rle_encode_1("aabbbcccc"), "2a3b4c".to_string());
+    assert_eq!(rle_decode("2 hs2q q2w2 "), "  hsqq qww  ".to_string());
+    assert_eq!(rle_decode_1("2 hs2q q2w2 "), "  hsqq qww  ".to_string());
+    assert_eq!(rle_decode_2("2 hs2q q2w2 "), "  hsqq qww  ".to_string());
+}
+
+fn rle_encode_1(str: &str) -> String {
+    let mut result = String::new();
+    let mut peekable = str.chars().peekable();
+
+    while let Some(c) = peekable.next() {
+        match iter::from_fn(|| peekable.next_if_eq(&c)).count() {
+            0 => result.push(c),
+            n => result.push_str(&format!("{}{}", n + 1, c)),
+        }
+    }
+    result
+}
+fn rle_encode(str: &str) -> String {
+    let mut res = String::new();
+    let mut count = 0;
+    let mut peekable = str.chars().peekable();
+
+    while let Some(c) = peekable.next() {
+        count += 1;
+        if Some(&c) != peekable.peek() {
+            if count > 1 {
+                res.push_str(&format!("{}", count));
+            }
+            res.push_str(&format!("{}", c));
+            count = 0;
+        }
+    }
+    res
+}
+
+fn rle_decode_2(str: &str) -> String {
+    str.chars()
+        .filter(|&c: &char| !c.is_numeric())
+        .zip(
+            str.split(|c: char| !c.is_numeric())
+                .map(|x| x.parse::<usize>().unwrap_or(1)),
+        )
+        // NOTE: flat_map to avoid use of collect() for iter::repeat::take
+        .flat_map(|(c, count)| iter::repeat(c).take(count))
+        .collect()
+}
+
+fn rle_decode_1(str: &str) -> String {
+    str.split(|c: char| !c.is_numeric())
+        .map(|x| x.parse::<usize>().unwrap_or(1))
+        .zip(str.matches(|c: char| !c.is_numeric()))
+        .map(|(count, c)| c.repeat(count))
+        .collect()
+}
+
+fn rle_decode(str: &str) -> String {
+    let mut res = String::new();
+    let mut count = String::new();
+    for c in str.chars() {
+        if c.is_numeric() {
+            count.push(c);
+        } else {
+            res.push_str(&c.to_string().repeat(count.parse::<usize>().unwrap_or(1)));
+            count.clear();
+        }
+    }
+    res
+}
+
+fn latin_kids() {
+    let n = "square";
+    let res = latin_kids_string(n);
+    let res = latin_kids_string_1(n);
+    let res = translate_word(n);
+    println!("{:?}", res);
+}
+
+use regex::Regex;
+
+pub fn translate_word(word: &str) -> String {
+    let vowel: Regex = Regex::new(r"^([aeiou]|y[^aeiou]|xr)[a-z]*").unwrap();
+    let consonants: Regex = Regex::new(r"^([^aeiou]?qu|[^aeiou][^aeiouy]*)([a-z]*)").unwrap();
+
+    if vowel.is_match(word) {
+        String::from(word) + "ay"
+    } else {
+        let caps = consonants.captures(word).unwrap();
+        String::from(&caps[2]) + &caps[1] + "ay"
+    }
+}
+
+pub fn translate(input: &str) -> String {
+    input
+        .split(" ")
+        .map(translate_word)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+const VOWEL: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
+fn latin_kids_string_1(input: &str) -> String {
+    input
+        .split_whitespace()
+        .map(anstray_latin)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn anstray_latin(word: &str) -> String {
+    let mut i = if word.starts_with('y') {
+        word.find(|c| "aeiou".contains(c)).unwrap()
+    } else {
+        word.find(|c| "aeiouy".contains(c)).unwrap()
+    };
+
+    if i >= 1 && &word[i - 1..=i] == "qu" {
+        i += 1
+    }
+
+    if &word[..2] == "yt" || "ay" == &word[i..] {
+        i = 0
+    }
+
+    format!("{}{}ay", &word[i..], &word[..i])
+}
+
+fn latin_kids_string(input: &str) -> String {
+    match input {
+        str if str.contains(char::is_whitespace) => {
+            str.split_whitespace().map(latin_kids_string).join(" ")
+        }
+        str if str.starts_with(VOWEL) => push_ay(str),
+        str if str.starts_with("xr") || str.starts_with("yt") => push_ay(str),
+        str if !str.starts_with(VOWEL) && str.contains("qu") => latin_kids_rule_3(str, 2),
+        str if !str.starts_with(VOWEL) && str.contains(VOWEL) => latin_kids_rule_2(str),
+        str if !str.starts_with(VOWEL) && str.contains('y') => latin_kids_rule_3(str, 0),
+        _ => todo!(),
+    }
+}
+
+fn latin_kids_rule_3(str: &str, index_addition: usize) -> String {
+    let index = str.find("qu").or(str.find('y')).unwrap();
+    let s = str.split_at(index + index_addition);
+    s.1.to_owned() + s.0 + "ay"
+}
+
+fn latin_kids_rule_2(str: &str) -> String {
+    let index = str.chars().position(|c| VOWEL.contains(&c)).unwrap();
+    let (consonant, other) = str.split_at(index);
+    format!("{other}{consonant}ay")
+}
+
+fn push_ay(str: &str) -> String {
+    str.to_owned() + "ay"
+}
+
+fn perfect_number() {
+    let n = 1;
+    let res = is_perfect_number(n);
+    println!("{:?}", res);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Classification {
+    Abundant,
+    Perfect,
+    Deficient,
+}
+
+fn is_perfect_number(number: u64) -> Option<Classification> {
+    if number < 1 {
+        return None;
+    }
+    let sum: u64 = (1..=number / 2).filter(|x| number % x == 0).sum();
+    match sum.cmp(&number) {
+        Ordering::Less => Some(Classification::Deficient),
+        Ordering::Equal => Some(Classification::Perfect),
+        Ordering::Greater => Some(Classification::Abundant),
+    }
 }
 
 fn alphametics() {
