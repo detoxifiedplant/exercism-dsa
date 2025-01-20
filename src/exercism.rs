@@ -24,7 +24,334 @@ pub fn call() {
     // pascals_triangle::call();
     // latin_kids();
     // run_length_encoding();
-    saddle_points();
+    // saddle_points();
+    // say_numbers();
+    // get_largest_series_product();
+    // get_scrabble_score();
+    // get_tournament_tally();
+}
+
+fn get_tournament_tally() {
+    let input: &[&str] = &[
+        "Allegoric Alaskans;Blithering Badgers;win",
+        "Devastating Donkeys;Courageous Californians;draw",
+        "Devastating Donkeys;Allegoric Alaskans;win",
+        "Courageous Californians;Blithering Badgers;loss",
+        "Blithering Badgers;Devastating Donkeys;loss",
+        "Allegoric Alaskans;Courageous Californians;win",
+    ];
+    let input = input.join("\n");
+    let output = tournament_tally(&input);
+    println!("{:?}", output);
+    let expected = [
+        "Team                           | MP |  W |  D |  L |  P",
+        "Devastating Donkeys            |  5 |  4 |  0 |  1 | 12",
+        "Blithering Badgers             |  5 |  1 |  0 |  4 |  3",
+    ]
+    .join("\n");
+
+    assert_eq!(output, expected);
+}
+
+#[derive(Debug, Default)]
+struct TournamentScores {
+    w: u32,
+    d: u32,
+    l: u32,
+}
+
+pub fn tournament_tally(match_results: &str) -> String {
+    let mut map = BTreeMap::new();
+    match_results.split('\n').for_each(|game| {
+        let res = game.split(';').collect::<Vec<_>>();
+        if res[2] == "draw" {
+            map.entry(res[1]).or_insert(TournamentScores::default()).d += 1;
+            map.entry(res[0]).or_insert(TournamentScores::default()).d += 1;
+        } else if res[2] == "win" {
+            map.entry(res[0]).or_insert(TournamentScores::default()).w += 1;
+            map.entry(res[1]).or_insert(TournamentScores::default()).l += 1;
+        } else {
+            map.entry(res[0]).or_insert(TournamentScores::default()).l += 1;
+            map.entry(res[1]).or_insert(TournamentScores::default()).w += 1;
+        }
+    });
+    let mut s = vec![format!(
+        "{:<30} | {:>2} | {:>2} | {:>2} | {:>2} | {:>2}",
+        "Team", "MP", "W", "D", "L", "P"
+    )];
+    s.extend(map.keys()
+        .map(|k| get_formated_tournament_string(k, map.get(k).unwrap())).collect::<Vec<_>>());
+    s.join("\n")
+}
+
+fn get_formated_tournament_string(team: &str, scores: &TournamentScores) -> String {
+    let total_matches = scores.w + scores.l + scores.d;
+    let total_score = scores.w * 3 + scores.d * 1;
+    format!(
+        "{:<30} | {:2} | {:2} | {:2} | {:2} | {:2}",
+        team, total_matches, scores.w, scores.d, scores.l, total_score
+    )
+}
+
+fn get_scrabble_score() {
+    let s = "OxyphenButazone";
+    assert_eq!(scrabble_score(s), 41);
+}
+
+fn scrabble_score(word: &str) -> u64 {
+    word.to_ascii_uppercase()
+        .chars()
+        .map(|c| match c {
+            'A' | 'E' | 'I' | 'O' | 'U' | 'L' | 'N' | 'R' | 'S' | 'T' => 1,
+            'D' | 'G' => 2,
+            'B' | 'C' | 'M' | 'P' => 3,
+            'F' | 'H' | 'V' | 'W' | 'Y' => 4,
+            'K' => 5,
+            'J' | 'X' => 8,
+            'Q' | 'Z' => 10,
+            _ => 0,
+        })
+        .sum()
+}
+
+fn get_largest_series_product() {
+    let number = "73167176531330624919225119674426574742355349194934";
+    let product = largest_series_product(number, 6);
+    println!("{:?}", product);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum LspError {
+    SpanTooLong,
+    InvalidDigit(char),
+}
+
+pub fn largest_series_product(string_digits: &str, span: usize) -> Result<u64, LspError> {
+    match span {
+        0 => Ok(1),
+        _ => string_digits
+            .chars()
+            // HACK: early return with error
+            .map(|c| {
+                c.to_digit(10)
+                    .ok_or(LspError::InvalidDigit(c))
+                    .map(u64::from)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .windows(span)
+            .map(|x| x.iter().product())
+            .max()
+            .ok_or(LspError::SpanTooLong),
+    }
+}
+
+pub fn largest_series_product_1(string_digits: &str, span: usize) -> Result<u64, LspError> {
+    if string_digits.len() < span {
+        return Err(LspError::SpanTooLong);
+    }
+
+    let mut nums = Vec::new();
+    for c in string_digits.chars() {
+        match c.to_digit(10) {
+            Some(n) => nums.push(n),
+            _ => return Err(LspError::InvalidDigit(c)),
+        }
+    }
+
+    let mut max = 0;
+    for w in nums.windows(span) {
+        let mul: u32 = w.iter().product();
+        if mul > max {
+            max = mul;
+        }
+    }
+    Ok(max as u64)
+}
+
+fn say_numbers() {
+    let number = 113;
+    let words = encode_say_numbers(number);
+    println!("{:?}", number);
+    println!("{:?}", words);
+}
+
+// 18_446_744_073_709_551_615
+// eighteen quintillion
+// four hundred forty-six quadrillion
+// seven hundred forty-four trillion
+// seventy-three billion
+// seven hundred nine million
+// five hundred fifty-one thousand
+// six hundred fifteen"
+const ONES: [&str; 20] = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+];
+
+const TENS: [&str; 10] = [
+    "zero", "ten", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+];
+
+const ORDERS: [&str; 7] = [
+    "zero",
+    "thousand",
+    "million",
+    "billion",
+    "trillion",
+    "quadrillion",
+    "quintillion",
+];
+
+const SCALES: [(u64, &str); 7] = [
+    (100, "hundred"),
+    (1_000, "thousand"),
+    (1_000_000, "million"),
+    (1_000_000_000, "billion"),
+    (1_000_000_000_000, "trillion"),
+    (1_000_000_000_000_000, "quadrillion"),
+    (1_000_000_000_000_000_000, "quintillion"),
+];
+
+fn encode_say_numbers(n: u64) -> String {
+    match n {
+        0..20 => ONES[n as usize].to_string(),
+        20..100 if n % 10 == 0 => TENS[(n / 10) as usize].to_string(),
+        _ => {
+            if let Some(&(i, order)) = SCALES.iter().rev().find(|(i, _)| n >= *i) {
+                format!(
+                    "{} {} {}",
+                    encode_say_numbers(n / i),
+                    order,
+                    encode_say_numbers(n % i)
+                )
+            } else {
+                format!(
+                    "{}-{}",
+                    encode_say_numbers(n / 10 * 10),
+                    encode_say_numbers(n % 10)
+                )
+            }
+        }
+    }
+    .replace(" zero", "")
+}
+fn encode_say_numbers_3(n: u64) -> String {
+    let formatter = |div: u64, order: &str| {
+        format!(
+            "{} {} {}",
+            encode_say_numbers(n / div),
+            order,
+            encode_say_numbers(n % div)
+        )
+    };
+    match n {
+        0..20 => ONES[n as usize].to_string(),
+        20..100 => {
+            let upper = (n / 10) as usize;
+            match n % 10 {
+                0 => TENS[upper].to_string(),
+                r => format!(
+                    "{}-{}",
+                    encode_say_numbers(n / 10 * 10),
+                    encode_say_numbers(r)
+                ),
+            }
+        }
+        ..=999 => formatter(100, "hundred"),
+        ..=999_999 => formatter(1_000, "thousand"),
+        ..=999_999_999 => formatter(1_000_000, "million"),
+        ..=999_999_999_999 => formatter(1_000_000_000, "billion"),
+        ..=999_999_999_999_999 => formatter(1_000_000_000_000, "trillion"),
+        ..=999_999_999_999_999_999 => formatter(1_000_000_000_000_000, "quadrillion"),
+        ..=u64::MAX => formatter(1_000_000_000_000_000_000, "quintillion"),
+    }
+    .replace(" zero", "")
+}
+fn encode_say_numbers_2(n: u64) -> String {
+    match n {
+        0..20 => ONES[n as usize].to_string(),
+        20..100 => {
+            let upper = (n / 10) as usize;
+            match n % 10 {
+                0 => TENS[upper].into(),
+                lower => format!("{}-{}", TENS[upper], ONES[lower as usize]),
+            }
+        }
+        100..1000 => encode_say_formatter(n, 100, "hundred"),
+        _ => {
+            let (div, order) = iter::successors(Some(1u64), |v| v.checked_mul(1000))
+                .zip(ORDERS.iter())
+                .find(|&(e, _)| e > n / 1000)
+                .unwrap();
+            encode_say_formatter(n, div, order)
+        }
+    }
+}
+
+fn encode_say_formatter(upper: u64, div: u64, order: &str) -> String {
+    match (upper / div, upper % div) {
+        (upper, 0) => format!("{} {}", ONES[upper as usize], order),
+        (upper, lower) => format!(
+            "{} {} {}",
+            encode_say_numbers(upper),
+            order,
+            encode_say_numbers(lower)
+        ),
+    }
+}
+
+fn encode_say_numbers_1(n: u64) -> String {
+    let mut group = Vec::new();
+    let mut num = n;
+    while num > 0 {
+        group.push(num % 1000);
+        num /= 1000;
+    }
+    let mut str = Vec::new();
+    group.iter().enumerate().rev().for_each(|(i, &num)| {
+        if num >= 100 {
+            str.push(ONES[num as usize / 100]);
+            str.push("hundred");
+        }
+        match (num % 100) as usize {
+            0 => (),
+            x @ 1..20 => str.push(ONES[x]),
+            x @ ..100 => {
+                if num % 10 != 0 {
+                    let mut n = TENS[x / 10].to_string();
+                    n.push('-');
+                    n.push_str(ONES[x % 10]);
+                    let ss = n.leak();
+                    str.push(ss);
+                } else {
+                    str.push(TENS[x / 10]);
+                }
+            }
+            _ => (),
+        };
+        if i > 0 {
+            str.push(ORDERS[i]);
+        }
+    });
+    str.join(" ")
 }
 
 fn saddle_points() {
@@ -566,7 +893,7 @@ fn transform(h: &BTreeMap<i32, Vec<char>>) -> BTreeMap<char, i32> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum Error {
+enum BowlingGameError {
     NotEnoughPinsLeft,
     GameComplete,
 }
@@ -582,11 +909,11 @@ impl BowlingGame {
         Default::default()
     }
 
-    fn roll(&mut self, pins: u16) -> Result<(), Error> {
+    fn roll(&mut self, pins: u16) -> Result<(), BowlingGameError> {
         if pins > 10 || (self.second && pins + self.throw.last().unwrap() > 10) {
-            Err(Error::NotEnoughPinsLeft)
+            Err(BowlingGameError::NotEnoughPinsLeft)
         } else if self.score().is_some() {
-            Err(Error::GameComplete)
+            Err(BowlingGameError::GameComplete)
         } else {
             self.throw.push(pins);
             self.second = if pins != 10 { !self.second } else { false };
