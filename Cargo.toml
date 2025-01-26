@@ -1,8 +1,24 @@
+[workspace]
+resolver = "2"
+members = [ "crates/epoll", "crates/exercism"]
+package.edition = "2021"
+package.rust-version = "1.78.0"
+package.license = "Apache-2.0"
+
 [package]
 name = "challenges"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-itertools = "0.13.0"
-regex = "1.11.1"
+[workspace.lints.rust]
+unsafe_code = "forbid"
+# unused = "allow"
+
+
+# # for each lib
+# [lib]
+# doctest = false
+#
+# workspace = true
+# [lints]
+#

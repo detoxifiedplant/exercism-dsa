@@ -1,13 +1,16 @@
 #![allow(unused_variables, dead_code, clippy::new_without_default)]
+
+mod dna_rna;
+mod paas_io;
+mod palindrome;
+mod pascals_triangle;
+mod queen_attack;
+mod new_type;
+
 use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::iter::{self, repeat};
-pub mod dna_rna;
-pub mod paas_io;
-pub mod palindrome;
-pub mod pascals_triangle;
-pub mod queen_attack;
 
 pub fn call() {
     println!("namah prabhu /\\ /\\");
@@ -79,8 +82,11 @@ pub fn tournament_tally(match_results: &str) -> String {
         "{:<30} | {:>2} | {:>2} | {:>2} | {:>2} | {:>2}",
         "Team", "MP", "W", "D", "L", "P"
     )];
-    s.extend(map.keys()
-        .map(|k| get_formated_tournament_string(k, map.get(k).unwrap())).collect::<Vec<_>>());
+    s.extend(
+        map.keys()
+            .map(|k| get_formated_tournament_string(k, map.get(k).unwrap()))
+            .collect::<Vec<_>>(),
+    );
     s.join("\n")
 }
 
